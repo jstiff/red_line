@@ -1,0 +1,10 @@
+[package]
+name = "red_line"
+version = "0.1.0"
+authors = ["jstiff <jwstiff8@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossterm = { version = "0.20.0", features = ["serde"] } 
