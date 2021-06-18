@@ -9,88 +9,9 @@ use crossterm::{
 };
 
 use std::io::Stdout;
+mod line_buffer;
+use line_buffer::LineBuffer;
 
-struct LineBuffer {
-    buffer: String,
-    insertion_point: usize,
-}
-
-impl LineBuffer {
-    pub fn new() -> LineBuffer {
-        LineBuffer {
-            buffer: String::new(),
-            insertion_point: 0,
-        }
-    }
-
-    pub fn set_insertion_point(&mut self, pos: usize) {
-        self.insertion_point = pos;
-    }
-
-    pub fn get_insertion_point(&self) -> usize {
-        self.insertion_point
-    }
-    pub fn inc_insertion_point(&mut self) {
-        self.insertion_point += 1
-    }
-    pub fn dec_insertion_point(&mut self) {
-        self.insertion_point -= 1
-    }
-    pub fn get_buffer(&self) -> &str {
-        &self.buffer
-    }
-    pub fn get_buffer_len(&self) -> usize {
-        self.buffer.len()
-    }
-    pub fn slice_buffer(&self, pos: usize) -> &str {
-        &self.buffer[pos..]
-    }
-    pub fn insert_char(&mut self, pos: usize, c: char) {
-        self.buffer.insert(pos, c)
-    }
-    pub fn remove_char(&mut self, pos: usize) -> char {
-        self.buffer.remove(pos)
-    }
-    pub fn is_empty(&self) -> bool {
-        self.buffer.is_empty()
-    }
-    pub fn pop(&mut self) -> Option<char> {
-        self.buffer.pop()
-    }
-    pub fn clear(&mut self) {
-        self.buffer.clear()
-    }
-    pub fn move_word_left(&mut self) -> usize {
-        match self
-            .buffer
-            .rmatch_indices(&[' ', '\t'][..])
-            .find(|(index, _)| index < &(self.insertion_point - 1))
-        {
-            Some((index, _)) => {
-                self.insertion_point = index + 1;
-            }
-            None => {
-                self.insertion_point = 0;
-            }
-        }
-        self.insertion_point
-    }
-    pub fn move_word_right(&mut self) -> usize {
-        match self
-            .buffer
-            .match_indices(&[' ', '\t'][..])
-            .find(|(index, _)| index > &(self.insertion_point))
-        {
-            Some((index, _)) => {
-                self.insertion_point = index + 1;
-            }
-            None => {
-                self.insertion_point = self.get_buffer_len();
-            }
-        }
-        self.insertion_point
-    }
-}
 fn print_message(stdout: &mut Stdout, msg: &str) -> Result<()> {
     stdout
         .queue(Print("\n"))?
@@ -151,22 +72,22 @@ fn main() -> Result<()> {
                     KeyCode::Backspace => {
                         let insertion_point = buffer.get_insertion_point();
                         if insertion_point == buffer.get_buffer_len() && !buffer.is_empty() {
+                            buffer.dec_insertion_point();
                             buffer.pop();
                             stdout
                                 .queue(MoveLeft(1))?
                                 .queue(Print(" "))?
                                 .queue(MoveLeft(1))?;
                             stdout.flush()?;
-                            buffer.dec_insertion_point();
                         } else if insertion_point < buffer.get_buffer_len() && !buffer.is_empty() {
                             buffer.remove_char(insertion_point - 1);
+                            buffer.dec_insertion_point();
                             stdout
                                 .queue(MoveLeft(1))?
                                 .queue(Print(buffer.slice_buffer(insertion_point - 1)))?
                                 .queue(Print(" "))?
                                 .queue(MoveToColumn(insertion_point as u16 + prompt_offset - 1))?;
                             stdout.flush()?;
-                            buffer.dec_insertion_point();
                         }
                     }
                     KeyCode::Delete => {
@@ -194,13 +115,11 @@ fn main() -> Result<()> {
                         }
                     }
                     KeyCode::Left => {
-                        println!("modifiers {:?}", modifiers);
                         if buffer.get_insertion_point() > 0 {
                             // If the ALT modifier is set, we want to jump words for more
                             // natural editing. Jumping words basically means: move to next
                             // whitespace in the given direction.
-                            if modifiers == KeyModifiers::ALT {
-                                println!("ALT PUSHED");
+                            if modifiers == KeyModifiers::NONE {
                                 let new_insertion_point = buffer.move_word_left();
                                 stdout.queue(MoveToColumn(
                                     new_insertion_point as u16 + prompt_offset,
@@ -215,7 +134,7 @@ fn main() -> Result<()> {
                     }
                     KeyCode::Right => {
                         if buffer.get_insertion_point() < buffer.get_buffer_len() {
-                            if modifiers == KeyModifiers::ALT {
+                            if modifiers == KeyModifiers::NONE {
                                 let new_insertion_point = buffer.move_word_right();
                                 stdout.queue(MoveToColumn(
                                     new_insertion_point as u16 + prompt_offset,
