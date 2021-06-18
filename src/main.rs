@@ -68,13 +68,12 @@ impl LineBuffer {
         {
             Some((index, _)) => {
                 self.insertion_point = index + 1;
-                self.insertion_point
             }
             None => {
                 self.insertion_point = 0;
-                self.insertion_point
             }
         }
+        self.insertion_point
     }
     pub fn move_word_right(&mut self) -> usize {
         match self
@@ -84,13 +83,12 @@ impl LineBuffer {
         {
             Some((index, _)) => {
                 self.insertion_point = index + 1;
-                self.insertion_point
             }
             None => {
                 self.insertion_point = self.get_buffer_len();
-                self.insertion_point
             }
         }
+        self.insertion_point
     }
 }
 fn print_message(stdout: &mut Stdout, msg: &str) -> Result<()> {
@@ -196,11 +194,13 @@ fn main() -> Result<()> {
                         }
                     }
                     KeyCode::Left => {
+                        println!("modifiers {:?}", modifiers);
                         if buffer.get_insertion_point() > 0 {
                             // If the ALT modifier is set, we want to jump words for more
                             // natural editing. Jumping words basically means: move to next
                             // whitespace in the given direction.
                             if modifiers == KeyModifiers::ALT {
+                                println!("ALT PUSHED");
                                 let new_insertion_point = buffer.move_word_left();
                                 stdout.queue(MoveToColumn(
                                     new_insertion_point as u16 + prompt_offset,
