@@ -26,4 +26,6 @@ stdout
 
 ```
 
-We will need to refactor to insure that we are getting a slice at a **character** NOT a byte boundry!!!! - slicing on the Character of a string VS slicing on the Bytes of a string........????
+We will need to refactor to insure that we are getting a slice at a **character** NOT a byte boundry!!!! - slicing on the Character of a string VS slicing on the Bytes of a string........???
+
+- When we increment/decrement the insertion point it is by 1. 1 byte. Unicode characters are more than 1 byte, I think at least after the ASKII characters...maybe all of them are simply 2 or 3 bytes I need to look it up. Anyways, the point being we need a way to increment/decrement to the next **char** not byte. For now we might use the str::char_indices() method that returns an iterator over a slice of characters.
