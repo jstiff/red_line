@@ -64,10 +64,9 @@ fn main() -> Result<()> {
                                 .queue(Print(buffer.slice_buffer(insertion_point)))?
                                 .queue(MoveToColumn(insertion_point as u16 + prompt_offset + 1))?;
                         }
-
                         stdout.flush()?;
+                        buffer.insert_char(buffer.get_insertion_point(), c);
                         buffer.inc_insertion_point();
-                        buffer.insert_char(insertion_point, c);
                     }
                     KeyCode::Backspace => {
                         let insertion_point = buffer.get_insertion_point();
@@ -80,13 +79,15 @@ fn main() -> Result<()> {
                                 .queue(MoveLeft(1))?;
                             stdout.flush()?;
                         } else if insertion_point < buffer.get_buffer_len() && !buffer.is_empty() {
-                            buffer.remove_char(insertion_point - 1);
                             buffer.dec_insertion_point();
+                            let insertion_point = buffer.get_insertion_point();
+                            buffer.remove_char(insertion_point);
+
                             stdout
                                 .queue(MoveLeft(1))?
-                                .queue(Print(buffer.slice_buffer(insertion_point - 1)))?
+                                .queue(Print(buffer.slice_buffer(insertion_point)))?
                                 .queue(Print(" "))?
-                                .queue(MoveToColumn(insertion_point as u16 + prompt_offset - 1))?;
+                                .queue(MoveToColumn(insertion_point as u16 + prompt_offset))?;
                             stdout.flush()?;
                         }
                     }
@@ -105,6 +106,8 @@ fn main() -> Result<()> {
                         if buffer.get_buffer() == "exit" {
                             break 'repl;
                         } else {
+                            //println!("grapheme {:?}", buffer.get_grapheme_indices());
+
                             print_message(
                                 &mut stdout,
                                 &format!("The Buffer: {}", buffer.get_buffer()),
@@ -119,7 +122,7 @@ fn main() -> Result<()> {
                             // If the ALT modifier is set, we want to jump words for more
                             // natural editing. Jumping words basically means: move to next
                             // whitespace in the given direction.
-                            if modifiers == KeyModifiers::NONE {
+                            if modifiers == KeyModifiers::ALT {
                                 let new_insertion_point = buffer.move_word_left();
                                 stdout.queue(MoveToColumn(
                                     new_insertion_point as u16 + prompt_offset,
