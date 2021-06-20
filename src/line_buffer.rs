@@ -1,3 +1,5 @@
+use unicode_segmentation::UnicodeSegmentation;
+
 pub struct LineBuffer {
     buffer: String,
     insertion_point: usize,
@@ -18,11 +20,34 @@ impl LineBuffer {
     pub fn get_insertion_point(&self) -> usize {
         self.insertion_point
     }
+    pub fn get_grapheme_indices(&self) -> Vec<(usize, &str)> {
+        UnicodeSegmentation::grapheme_indices(self.buffer.as_str(), true).collect()
+    }
+    //     pub fn inc_insertion_point(&mut self) {
+    //         self.insertion_point += 1
+    //     }
     pub fn inc_insertion_point(&mut self) {
-        self.insertion_point += 1
+        let grapheme_indices = self.get_grapheme_indices();
+        for i in 0..grapheme_indices.len() {
+            if grapheme_indices[i].0 == self.insertion_point && i < (grapheme_indices.len() - 1) {
+                self.insertion_point = grapheme_indices[i + 1].0;
+                return;
+            }
+        }
+
+        self.insertion_point = self.buffer.len();
     }
     pub fn dec_insertion_point(&mut self) {
-        self.insertion_point -= 1
+        let grapheme_indices = self.get_grapheme_indices();
+        for i in 0..grapheme_indices.len() {
+            if grapheme_indices[i].0 == self.insertion_point && i > 1 {
+                self.insertion_point = grapheme_indices[i - 1].0;
+                return;
+            }
+        }
+
+        self.insertion_point = 0;
+        //self.insertion_point -= 1
     }
     pub fn get_buffer(&self) -> &str {
         &self.buffer
