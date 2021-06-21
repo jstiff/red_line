@@ -20,12 +20,19 @@ impl LineBuffer {
     pub fn get_insertion_point(&self) -> usize {
         self.insertion_point
     }
+    pub fn set_buffer(&mut self, buffer: String) {
+        self.buffer = buffer;
+    }
+
+    pub fn move_to_end(&mut self) -> usize {
+        self.insertion_point = self.buffer.len();
+
+        self.insertion_point
+    }
     pub fn get_grapheme_indices(&self) -> Vec<(usize, &str)> {
         UnicodeSegmentation::grapheme_indices(self.buffer.as_str(), true).collect()
     }
-    //     pub fn inc_insertion_point(&mut self) {
-    //         self.insertion_point += 1
-    //     }
+
     pub fn inc_insertion_point(&mut self) {
         let grapheme_indices = self.get_grapheme_indices();
         for i in 0..grapheme_indices.len() {
@@ -63,6 +70,7 @@ impl LineBuffer {
     pub fn get_buffer_len(&self) -> usize {
         self.buffer.len()
     }
+
     pub fn slice_buffer(&self, pos: usize) -> &str {
         &self.buffer[pos..]
     }
@@ -81,34 +89,48 @@ impl LineBuffer {
     pub fn clear(&mut self) {
         self.buffer.clear()
     }
+
     pub fn move_word_left(&mut self) -> usize {
-        match self
-            .buffer
-            .rmatch_indices(&[' ', '\t'][..])
-            .find(|(index, _)| index < &(self.insertion_point - 1))
-        {
+        let mut words = self.buffer[..self.insertion_point]
+            .split_word_bound_indices()
+            .filter(|(_, word)| !is_word_boundary(word));
+
+        match words.next_back() {
             Some((index, _)) => {
-                self.insertion_point = index + 1;
+                self.insertion_point = index;
             }
             None => {
                 self.insertion_point = 0;
             }
         }
+
         self.insertion_point
     }
+
     pub fn move_word_right(&mut self) -> usize {
-        match self
-            .buffer
-            .match_indices(&[' ', '\t'][..])
-            .find(|(index, _)| index > &(self.insertion_point))
-        {
-            Some((index, _)) => {
-                self.insertion_point = index + 1;
+        let mut words = self.buffer[self.insertion_point..]
+            .split_word_bound_indices()
+            .filter(|(_, word)| !is_word_boundary(word));
+
+        match words.next() {
+            Some((offset, word)) => {
+                // Move the insertion point just past the end of the next word
+                self.insertion_point += offset + word.len();
             }
             None => {
-                self.insertion_point = self.get_buffer_len();
+                self.insertion_point = self.buffer.len();
             }
         }
+
         self.insertion_point
     }
+}
+fn is_word_boundary(s: &str) -> bool {
+    !s.chars().any(char::is_alphanumeric)
+}
+#[test]
+fn emoji_test() {
+    //TODO
+    "😊";
+    "🤦🏼‍♂️";
 }
