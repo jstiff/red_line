@@ -12,9 +12,9 @@
     - build something that can take in commands...apply then to a 'buffer'
 - right now we have things combined into one file and even have multiple steps intertwined.
   - for example, will want to break things like 'Backspace' event into two diff blocks of code. One that handles updating the buffer and one that handles updating the screen.
-- So, in the end...after episdoe 1. All we are really doing is 'echoing' the input back to stdout.
+- So, in the end...after episode 1. All we are really doing is 'echoing' the input back to stdout.
 
-In the first episode...or first iteration of this we accessed the buffer with a 'slice'...which is bad because it will give you a slice into Bytes. There is the potential to get some bytes missing from the UTF-8 encoding. Rust will be recieving missing byte data to represent that utf-8 character and it will panic!
+In the first episode...or first iteration of this, we access the buffer with a 'slice'...which is bad because it will give you a slice into Bytes. There is the potential to get some bytes missing from the UTF-8 encoding. Rust will be receiving missing byte data to represent that utf-8 character, and it will panic!
 
 ```rs
 
@@ -26,6 +26,6 @@ stdout
 
 ```
 
-We will need to refactor to insure that we are getting a slice at a **character** NOT a byte boundry!!!! - slicing on the Character of a string VS slicing on the Bytes of a string........???
+We will need to refactor to ensure that we are getting a slice of a **character,** NOT a byte boundary!!!! - slicing on the Character of a string VS slicing on the Bytes of a string........???
 
-- When we increment/decrement the insertion point it is by 1. 1 byte. Unicode characters are more than 1 byte, I think at least after the ASKII characters...maybe all of them are simply 2 or 3 bytes I need to look it up. Anyways, the point being we need a way to increment/decrement to the next **char** not byte. For now we might use the str::char_indices() method that returns an iterator over a slice of characters.
+- When we increment/decrement the insertion point, it is by 1. 1 byte. Unicode's characters are more than 1 byte, I think at least after the ASCII characters...maybe all of them are simply 2 or 3 bytes I need to look it up. Anyways, the point being we need a way to increment/decrement to the next **char** not byte. For now we might use the str::char_indices() method that returns an iterator over a slice of characters.
