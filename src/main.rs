@@ -1,7 +1,9 @@
 use std::io::{stdout, Write};
 
 use crossterm::{
-    cursor::{position, MoveLeft, MoveRight, MoveToColumn, MoveToNextLine},
+    cursor::{
+        position, MoveLeft, MoveRight, MoveToColumn, MoveToNextLine, RestorePosition, SavePosition,
+    },
     event::read,
     event::{Event, KeyCode, KeyEvent, KeyModifiers},
     style::{Color, Print, ResetColor, SetForegroundColor},
@@ -25,7 +27,21 @@ fn print_message(stdout: &mut Stdout, msg: &str) -> Result<()> {
 
     Ok(())
 }
+fn buffer_repaint(
+    stdout: &mut Stdout,
+    buffer: &LineBuffer,
+    prompt_offset: u16,
+    new_index: usize,
+) -> Result<()> {
+    let raw_buffer = buffer.get_buffer();
+    stdout.queue(MoveToColumn(prompt_offset))?;
+    stdout.queue(Print(&raw_buffer[0..new_index]))?;
+    stdout.queue(SavePosition)?;
+    stdout.queue(Print(&raw_buffer[new_index..]))?;
+    stdout.queue(RestorePosition)?;
 
+    Ok(())
+}
 fn main() -> Result<()> {
     let mut stdout = stdout();
     let mut buffer = LineBuffer::new();
@@ -45,6 +61,7 @@ fn main() -> Result<()> {
         // set where the input begins
 
         let (mut prompt_offset, _) = position()?;
+        //println!("prompt offset {:?}", prompt_offset);
 
         prompt_offset += 1;
 
@@ -105,6 +122,17 @@ fn main() -> Result<()> {
                                 .queue(MoveToColumn(insertion_point as u16 + prompt_offset))?;
                             stdout.flush()?;
                         }
+                    }
+                    KeyCode::Home => {
+                        stdout.queue(MoveToColumn(prompt_offset))?;
+                        stdout.flush()?;
+                        buffer.set_insertion_point(0);
+                    }
+                    KeyCode::End => {
+                        let buffer_len = buffer.get_buffer_len();
+                        stdout.queue(MoveToColumn(prompt_offset + buffer_len as u16))?;
+                        stdout.flush()?;
+                        buffer.set_insertion_point(buffer_len);
                     }
                     KeyCode::Enter => {
                         if buffer.get_buffer() == "exit" {
@@ -210,7 +238,8 @@ fn main() -> Result<()> {
                                     new_insertion_point as u16 + prompt_offset,
                                 ))?;
                             } else {
-                                stdout.queue(MoveLeft(1))?;
+                                let idx = buffer.get_grapheme_index_left();
+                                buffer_repaint(&mut stdout, &buffer, prompt_offset, idx)?;
                                 buffer.dec_insertion_point();
                             }
 
@@ -225,7 +254,14 @@ fn main() -> Result<()> {
                                     new_insertion_point as u16 + prompt_offset,
                                 ))?;
                             } else {
-                                stdout.queue(MoveRight(1))?;
+                                let idx = buffer.get_grapheme_index_right();
+                                let raw_buffer = buffer.get_buffer();
+                                stdout.queue(MoveToColumn(prompt_offset))?;
+                                stdout.queue(Print(&raw_buffer[0..idx]))?;
+                                stdout.queue(SavePosition)?;
+                                stdout.queue(Print(&raw_buffer[idx..]))?;
+                                stdout.queue(RestorePosition)?;
+
                                 buffer.inc_insertion_point();
                             }
 
