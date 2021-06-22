@@ -238,9 +238,9 @@ fn main() -> Result<()> {
                                     new_insertion_point as u16 + prompt_offset,
                                 ))?;
                             } else {
-                                let idx = buffer.get_grapheme_index_left();
-                                buffer_repaint(&mut stdout, &buffer, prompt_offset, idx)?;
                                 buffer.dec_insertion_point();
+                                let idx = buffer.get_insertion_point();
+                                buffer_repaint(&mut stdout, &buffer, prompt_offset, idx)?;
                             }
 
                             stdout.flush()?;
@@ -254,15 +254,9 @@ fn main() -> Result<()> {
                                     new_insertion_point as u16 + prompt_offset,
                                 ))?;
                             } else {
-                                let idx = buffer.get_grapheme_index_right();
-                                let raw_buffer = buffer.get_buffer();
-                                stdout.queue(MoveToColumn(prompt_offset))?;
-                                stdout.queue(Print(&raw_buffer[0..idx]))?;
-                                stdout.queue(SavePosition)?;
-                                stdout.queue(Print(&raw_buffer[idx..]))?;
-                                stdout.queue(RestorePosition)?;
-
                                 buffer.inc_insertion_point();
+                                let idx = buffer.get_insertion_point();
+                                buffer_repaint(&mut stdout, &buffer, prompt_offset, idx)?;
                             }
 
                             stdout.flush()?;
