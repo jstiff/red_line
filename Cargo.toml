@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 crossterm = { version = "0.20.0", features = ["serde"] } 
+unicode-segmentation = "1.7.1"

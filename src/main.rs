@@ -124,15 +124,15 @@ fn main() -> Result<()> {
                         }
                     }
                     KeyCode::Home => {
-                        stdout.queue(MoveToColumn(prompt_offset))?;
+                        buffer_repaint(&mut stdout, &buffer, prompt_offset, 0)?;
                         stdout.flush()?;
                         buffer.set_insertion_point(0);
                     }
                     KeyCode::End => {
                         let buffer_len = buffer.get_buffer_len();
-                        stdout.queue(MoveToColumn(prompt_offset + buffer_len as u16))?;
-                        stdout.flush()?;
                         buffer.set_insertion_point(buffer_len);
+                        buffer_repaint(&mut stdout, &buffer, prompt_offset, buffer_len)?;
+                        stdout.flush()?;
                     }
                     KeyCode::Enter => {
                         if buffer.get_buffer() == "exit" {
