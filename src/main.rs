@@ -194,6 +194,21 @@ fn main() -> Result<()> {
                             buffer_repaint(&mut stdout, &buffer, prompt_offset)?;
                         }
                     }
+                    KeyCode::Left => {
+                        if buffer.get_insertion_point() > 0 {
+                            // If the ALT modifier is set, we want to jump words for more
+                            // natural editing. Jumping words basically means: move to next
+                            // whitespace in the given direction.
+                            buffer.move_word_left();
+                            buffer_repaint(&mut stdout, &buffer, prompt_offset)?;
+                        }
+                    }
+                    KeyCode::Right => {
+                        if buffer.get_insertion_point() < buffer.get_buffer_len() {
+                            buffer.move_word_right();
+                            buffer_repaint(&mut stdout, &buffer, prompt_offset)?;
+                        }
+                    }
                     _ => {}
                 },
                 Event::Key(KeyEvent { code, modifiers }) => {
@@ -299,24 +314,14 @@ fn main() -> Result<()> {
                                 // If the ALT modifier is set, we want to jump words for more
                                 // natural editing. Jumping words basically means: move to next
                                 // whitespace in the given direction.
-                                if modifiers == KeyModifiers::ALT {
-                                    buffer.move_word_left();
-                                    buffer_repaint(&mut stdout, &buffer, prompt_offset)?;
-                                } else {
-                                    buffer.dec_insertion_point();
-                                    buffer_repaint(&mut stdout, &buffer, prompt_offset)?;
-                                }
+                                buffer.dec_insertion_point();
+                                buffer_repaint(&mut stdout, &buffer, prompt_offset)?;
                             }
                         }
                         KeyCode::Right => {
                             if buffer.get_insertion_point() < buffer.get_buffer_len() {
-                                if modifiers == KeyModifiers::ALT {
-                                    buffer.move_word_right();
-                                    buffer_repaint(&mut stdout, &buffer, prompt_offset)?;
-                                } else {
-                                    buffer.inc_insertion_point();
-                                    buffer_repaint(&mut stdout, &buffer, prompt_offset)?;
-                                }
+                                buffer.inc_insertion_point();
+                                buffer_repaint(&mut stdout, &buffer, prompt_offset)?;
                             }
                         }
                         _ => {}
