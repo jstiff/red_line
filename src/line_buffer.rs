@@ -20,6 +20,11 @@ impl LineBuffer {
     pub fn get_insertion_point(&self) -> usize {
         self.insertion_point
     }
+
+    pub fn get_buffer(&self) -> &str {
+        &self.buffer
+    }
+
     pub fn set_buffer(&mut self, buffer: String) {
         self.buffer = buffer;
     }
@@ -29,7 +34,8 @@ impl LineBuffer {
 
         self.insertion_point
     }
-    pub fn get_grapheme_indices(&self) -> Vec<(usize, &str)> {
+
+    fn get_grapheme_indices(&self) -> Vec<(usize, &str)> {
         UnicodeSegmentation::grapheme_indices(self.buffer.as_str(), true).collect()
     }
 
@@ -41,9 +47,11 @@ impl LineBuffer {
                 return;
             }
         }
-
         self.insertion_point = self.buffer.len();
+
+        //TODO if we should have found the boundary but didn't, we should panic
     }
+
     pub fn dec_insertion_point(&mut self) {
         let grapheme_indices = self.get_grapheme_indices();
         if self.insertion_point == self.buffer.len() {
@@ -59,58 +67,68 @@ impl LineBuffer {
                     return;
                 }
             }
-
             self.insertion_point = 0;
         }
-        //self.insertion_point -= 1
     }
-    pub fn get_buffer(&self) -> &str {
-        &self.buffer
-    }
+
     pub fn get_buffer_len(&self) -> usize {
         self.buffer.len()
     }
 
-    pub fn slice_buffer(&self, pos: usize) -> &str {
-        &self.buffer[pos..]
-    }
     pub fn insert_char(&mut self, pos: usize, c: char) {
         self.buffer.insert(pos, c)
     }
+
     pub fn remove_char(&mut self, pos: usize) -> char {
         self.buffer.remove(pos)
     }
+
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
     }
+
     pub fn pop(&mut self) -> Option<char> {
-        self.buffer.pop()
+        let result = self.buffer.pop();
+        self.insertion_point = self.buffer.len();
+        result
     }
+
     pub fn clear(&mut self) {
-        self.buffer.clear()
+        self.buffer.clear();
+        self.insertion_point = 0;
     }
-    //     pub fn get_grapheme_index_left(&self) -> usize {
-    //         let grapheme_indices = self.get_grapheme_indices();
-    //         let mut prev = 0;
-    //         for (idx, _) in grapheme_indices {
-    //             if idx >= self.insertion_point {
-    //                 return prev;
-    //             }
-    //             prev = idx;
+
+    pub fn clear_to_end(&mut self) {
+        self.buffer.truncate(self.insertion_point);
+    }
+
+    // pub fn get_grapheme_index_left(&self) -> usize {
+    //     let grapheme_indices = self.get_grapheme_indices();
+
+    //     let mut prev = 0;
+    //     for (idx, _) in grapheme_indices {
+    //         if idx >= self.insertion_point {
+    //             return prev;
     //         }
-    //         prev
+    //         prev = idx;
     //     }
-    //     pub fn get_grapheme_index_right(&self) -> usize {
-    //         let grapheme_indices = self.get_grapheme_indices();
-    //         let mut next = self.buffer.len();
-    //         for (idx, _) in grapheme_indices.iter().rev() {
-    //             if *idx <= self.insertion_point {
-    //                 return next;
-    //             }
-    //             next = *idx;
+
+    //     prev
+    // }
+
+    // pub fn get_grapheme_index_right(&self) -> usize {
+    //     let grapheme_indices = self.get_grapheme_indices();
+
+    //     let mut next = self.buffer.len();
+    //     for (idx, _) in grapheme_indices.iter().rev() {
+    //         if *idx <= self.insertion_point {
+    //             return next;
     //         }
-    //         next
+    //         next = *idx;
     //     }
+
+    //     next
+    // }
 
     pub fn move_word_left(&mut self) -> usize {
         let mut words = self.buffer[..self.insertion_point]
@@ -147,9 +165,12 @@ impl LineBuffer {
         self.insertion_point
     }
 }
+
+/// Match any sequence of characters that are considered a word boundary
 fn is_word_boundary(s: &str) -> bool {
     !s.chars().any(char::is_alphanumeric)
 }
+
 #[test]
 fn emoji_test() {
     //TODO
