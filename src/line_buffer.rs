@@ -42,8 +42,7 @@ impl LineBuffer {
     pub fn inc_insertion_point(&mut self) {
         self.insertion_point = if let Some((i, _)) = self.buffer[self.insertion_point..]
             .grapheme_indices(true)
-            .skip(1)
-            .next()
+            .nth(1)
         {
             self.insertion_point + i
         } else {
@@ -73,6 +72,9 @@ impl LineBuffer {
     pub fn remove_char(&mut self, pos: usize) -> char {
         self.buffer.remove(pos)
     }
+    pub fn insert_str(&mut self, idx: usize, string: &str) {
+        self.buffer.insert_str(idx, string)
+    }
 
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
@@ -91,6 +93,17 @@ impl LineBuffer {
 
     pub fn clear_to_end(&mut self) {
         self.buffer.truncate(self.insertion_point);
+    }
+    pub fn clear_to_insertion_point(&mut self) {
+        self.clear_range(..self.insertion_point);
+        self.insertion_point = 0;
+    }
+
+    pub fn clear_range<R>(&mut self, range: R)
+    where
+        R: std::ops::RangeBounds<usize>,
+    {
+        self.buffer.replace_range(range, "");
     }
 
     // pub fn get_grapheme_index_left(&self) -> usize {
