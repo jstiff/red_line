@@ -34,5 +34,14 @@ We will need to refactor to ensure that we are getting a slice of a **character,
 
 ### Part 3
 
-- moving the buffer updating at the begining of the 'KeyCode' events....
-- Might want to optimize the 'insert_char' method later if that's possible. Right now it copies everyhing over in memory.
+- moving the buffer updating at the beginning of the 'KeyCode' events....
+- Might want to optimize the 'insert_char' method later if that's possible. Right now it copies everything over in memory.
+
+- Going to implement the 'Command pattern' for these key events. So that the interface simply displays the 'key' and it's subsequent function calls and that's it. Hide everything else. I am assuming that we will create an 'engine' module that handles the logic for everything.
+
+- want the engine to handle the logic and the 'main.rs' function to be simplified. Inside the first iteration of the 'engine' we will have a strut called 'engine' that will hold the 'LineBuffer'...and for the time being when we call for methods on the LineBuffer we will have the Engine stuct simply proxy for the line_buffer logic we already have. This is just an indirection tactic....we will have the interface be the engine...then the engine redirects to call the LineBuffer logic that we already set up. 
+- Eventually we will start peeling away at that. 
+  -  We just copy and pasted LineBuffer impl logic into Engine...will refactor in order to redirect into the 'line_buffer'...this may cause isses with the compiler,  because we could run into scnerios where we have a reference to a reference and it will complain. 
+
+- 
+
