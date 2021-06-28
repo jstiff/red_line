@@ -27,8 +27,8 @@ stdout
 ```
 
 We will need to refactor to ensure that we are getting a slice of a **character,** NOT a byte boundary!!!! - slicing on the Character of a string VS slicing on the Bytes of a string........???
-
-- When we increment/decrement the insertion point, it is by 1. 1 byte. Unicode's characters are more than 1 byte, I think at least after the ASCII characters...maybe all of them are simply 2 or 3 bytes I need to look it up. Anyways, the point being we need a way to increment/decrement to the next **char** not byte. For now we might use the str::char_indices() method that returns an iterator over a slice of characters.
+```
+A Rust String is a vector of bytes containing a UTF-8 string, which is an uneasy combination. You can’t simply index into a String: the compiler forbids it, because you’re far too likely to get one byte of a multi-byte UTF-8 char. Instead, you need to use a Chars iterator to parse out the string character by character.
 
 ---
 
@@ -41,7 +41,7 @@ We will need to refactor to ensure that we are getting a slice of a **character,
 
 - want the engine to handle the logic and the 'main.rs' function to be simplified. Inside the first iteration of the 'engine' we will have a strut called 'engine' that will hold the 'LineBuffer'...and for the time being when we call for methods on the LineBuffer we will have the Engine stuct simply proxy for the line_buffer logic we already have. This is just an indirection tactic....we will have the interface be the engine...then the engine redirects to call the LineBuffer logic that we already set up. 
 - Eventually we will start peeling away at that. 
-  -  We just copy and pasted LineBuffer impl logic into Engine...will refactor in order to redirect into the 'line_buffer'...this may cause isses with the compiler,  because we could run into scnerios where we have a reference to a reference and it will complain. 
+  -  We just copy and pasted LineBuffer impl logic into Engine...will refactor in order to redirect into the 'line_buffer'...this may cause issues with the compiler,  because we could run into scenarios where we have a reference to a reference, and it will complain. 
 
 - 
 
