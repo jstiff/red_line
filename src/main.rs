@@ -12,7 +12,7 @@ use crossterm::{
 use std::collections::VecDeque;
 use std::io::Stdout;
 mod engine;
-use engine::Engine;
+use engine::{EditCommand, Engine};
 mod line_buffer;
 
 const HISTORY_SIZE: usize = 100;
@@ -124,20 +124,16 @@ fn main() -> Result<()> {
                             stdout.queue(MoveToNextLine(1))?.queue(Print("exit"))?;
                             break 'repl;
                         } else {
-                            let insertion_point = engine.get_insertion_point();
-                            if insertion_point < engine.get_buffer_len() && !engine.is_empty() {
-                                engine.remove_char(insertion_point);
-                                buffer_repaint(&mut stdout, &engine, prompt_offset)?;
-                            }
+                            engine.run_edit_commands(&[EditCommand::Delete]);
+                            buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                     }
                     KeyCode::Char('a') => {
-                        engine.set_insertion_point(0);
+                        engine.run_edit_commands(&[EditCommand::MoveToStart]);
                         buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                     }
                     KeyCode::Char('e') => {
-                        let buffer_len = engine.get_buffer_len();
-                        engine.set_insertion_point(buffer_len);
+                        engine.run_edit_commands(&[EditCommand::MoveToEnd]);
                         buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                     }
                     KeyCode::Char('k') => {
@@ -204,6 +200,16 @@ fn main() -> Result<()> {
                             buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                     }
+                    // Ctl left/right or Alt left/right DON"T work!
+                    // but they do work on the Linux machine.
+                    KeyCode::Left => {
+                        engine.run_edit_commands(&[EditCommand::MoveWordLeft]);
+                        buffer_repaint(&mut stdout, &engine, prompt_offset)?;
+                    }
+                    KeyCode::Right => {
+                        engine.run_edit_commands(&[EditCommand::MoveWordRight]);
+                        buffer_repaint(&mut stdout, &engine, prompt_offset)?;
+                    }
                     _ => {}
                 },
                 Event::Key(KeyEvent {
@@ -211,11 +217,11 @@ fn main() -> Result<()> {
                     modifiers: KeyModifiers::ALT,
                 }) => match code {
                     KeyCode::Char('b') => {
-                        engine.move_word_left();
+                        engine.run_edit_commands(&[EditCommand::MoveLeft]);
                         buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                     }
                     KeyCode::Char('f') => {
-                        engine.move_word_right();
+                        engine.run_edit_commands(&[EditCommand::MoveRight]);
                         buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                     }
                     KeyCode::Char('d') => {
@@ -233,61 +239,39 @@ fn main() -> Result<()> {
                         }
                     }
                     KeyCode::Left => {
-                        if engine.get_insertion_point() > 0 {
-                            // If the ALT modifier is set, we want to jump words for more
-                            // natural editing. Jumping words basically means: move to next
-                            // whitespace in the given direction.
-                            engine.move_word_left();
-                            buffer_repaint(&mut stdout, &engine, prompt_offset)?;
-                        }
+                        engine.run_edit_commands(&[EditCommand::MoveWordLeft]);
+                        buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                     }
                     KeyCode::Right => {
-                        if engine.get_insertion_point() < engine.get_buffer_len() {
-                            engine.move_word_right();
-                            buffer_repaint(&mut stdout, &engine, prompt_offset)?;
-                        }
+                        engine.run_edit_commands(&[EditCommand::MoveWordRight]);
+                        buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                     }
                     _ => {}
                 },
                 Event::Key(KeyEvent { code, modifiers: _ }) => {
                     match code {
                         KeyCode::Char(c) => {
-                            engine.insert_char(engine.get_insertion_point(), c);
-                            engine.inc_insertion_point();
+                            engine.run_edit_commands(&[
+                                EditCommand::InsertChar(c),
+                                EditCommand::MoveRight,
+                            ]);
 
                             buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                         KeyCode::Backspace => {
-                            let insertion_point = engine.get_insertion_point();
-                            if insertion_point == engine.get_buffer_len() && !engine.is_empty() {
-                                // engine.dec_insertion_point();
-                                engine.pop();
-                                buffer_repaint(&mut stdout, &engine, prompt_offset)?;
-                            } else if insertion_point < engine.get_buffer_len()
-                                && insertion_point > 0
-                                && !engine.is_empty()
-                            {
-                                engine.dec_insertion_point();
-                                let insertion_point = engine.get_insertion_point();
-                                engine.remove_char(insertion_point);
-
-                                buffer_repaint(&mut stdout, &engine, prompt_offset)?;
-                            }
+                            engine.run_edit_commands(&[EditCommand::Backspace]);
+                            buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                         KeyCode::Delete => {
-                            let insertion_point = engine.get_insertion_point();
-                            if insertion_point < engine.get_buffer_len() && !engine.is_empty() {
-                                engine.remove_char(insertion_point);
-                                buffer_repaint(&mut stdout, &engine, prompt_offset)?;
-                            }
+                            engine.run_edit_commands(&[EditCommand::Delete]);
+                            buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                         KeyCode::Home => {
-                            engine.set_insertion_point(0);
+                            engine.run_edit_commands(&[EditCommand::MoveToStart]);
                             buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                         KeyCode::End => {
-                            let buffer_len = engine.get_buffer_len();
-                            engine.set_insertion_point(buffer_len);
+                            engine.run_edit_commands(&[EditCommand::MoveToEnd]);
                             buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                         KeyCode::Enter => {
@@ -344,19 +328,12 @@ fn main() -> Result<()> {
                             buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                         KeyCode::Left => {
-                            if engine.get_insertion_point() > 0 {
-                                // If the ALT modifier is set, we want to jump words for more
-                                // natural editing. Jumping words basically means: move to next
-                                // whitespace in the given direction.
-                                engine.dec_insertion_point();
-                                buffer_repaint(&mut stdout, &engine, prompt_offset)?;
-                            }
+                            engine.run_edit_commands(&[EditCommand::MoveLeft]);
+                            buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                         KeyCode::Right => {
-                            if engine.get_insertion_point() < engine.get_buffer_len() {
-                                engine.inc_insertion_point();
-                                buffer_repaint(&mut stdout, &engine, prompt_offset)?;
-                            }
+                            engine.run_edit_commands(&[EditCommand::MoveRight]);
+                            buffer_repaint(&mut stdout, &engine, prompt_offset)?;
                         }
                         _ => {}
                     };

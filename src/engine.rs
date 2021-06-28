@@ -1,5 +1,16 @@
 use crate::line_buffer::LineBuffer;
 
+pub enum EditCommand {
+    MoveToStart,
+    MoveToEnd,
+    MoveLeft,
+    MoveRight,
+    MoveWordLeft,
+    MoveWordRight,
+    InsertChar(char),
+    Backspace,
+    Delete,
+}
 pub struct Engine {
     line_buffer: LineBuffer,
 }
@@ -8,6 +19,48 @@ impl Engine {
     pub fn new() -> Engine {
         Engine {
             line_buffer: LineBuffer::new(),
+        }
+    }
+    pub fn run_edit_commands(&mut self, commands: &[EditCommand]) {
+        for command in commands {
+            match command {
+                EditCommand::MoveToStart => self.line_buffer.set_insertion_point(0),
+                EditCommand::MoveToEnd => {
+                    self.line_buffer.move_to_end();
+                }
+                EditCommand::MoveLeft => self.line_buffer.dec_insertion_point(),
+                EditCommand::MoveRight => self.line_buffer.inc_insertion_point(),
+                EditCommand::MoveWordLeft => {
+                    self.line_buffer.move_word_left();
+                }
+                EditCommand::MoveWordRight => {
+                    self.line_buffer.move_word_right();
+                }
+                EditCommand::InsertChar(c) => {
+                    let insertion_point = self.line_buffer.get_insertion_point();
+                    self.line_buffer.insert_char(insertion_point, *c);
+                }
+                EditCommand::Backspace => {
+                    let insertion_point = self.get_insertion_point();
+                    if insertion_point == self.get_buffer_len() && !self.is_empty() {
+                        // engine.dec_insertion_point();
+                        self.pop();
+                    } else if insertion_point < self.get_buffer_len()
+                        && insertion_point > 0
+                        && !self.is_empty()
+                    {
+                        self.dec_insertion_point();
+                        let insertion_point = self.get_insertion_point();
+                        self.remove_char(insertion_point);
+                    }
+                }
+                EditCommand::Delete => {
+                    let insertion_point = self.get_insertion_point();
+                    if insertion_point < self.get_buffer_len() && !self.is_empty() {
+                        self.remove_char(insertion_point);
+                    }
+                }
+            }
         }
     }
 
